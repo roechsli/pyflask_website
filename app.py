@@ -42,15 +42,31 @@ def index():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if request.method == "POST":
-        uname = request.form["uname"]
-        passw = request.form["passw"]
+    print("hello")
+    try:
+        c, conn = connection()
 
-        login = User.query.filter_by(username=uname, password=passw).first()
+        error = None
+        if request.method == 'POST':
 
-        if login is not None:
-            return redirect(url_for("index"))
-    return render_template("login.html")
+            data = c.execute("SELECT * FROM users WHERE username = (%s)",
+                             request.form['uname'])
+            print("printing fetchone")
+            print(c.fetchone())
+            data = c.fetchone()[2]
+
+            if data == hashlib.md5(request.form['password']).hexdigest():
+                session['logged_in'] = True
+                session['username'] = request.form['username']
+                # flash('You are now logged in.'+str(session['username']))
+                return redirect(url_for('dashboard'))
+
+            else:
+                error = 'Invalid credentials. Try again'
+        return render_template('login.html', error=error)
+    except Exception as e:
+        error = 'Invalid credentials. Try again'
+        return render_template('login.html', error=error)
 
 
 @app.route("/register", methods=["GET", "POST"])
